@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -20,10 +21,13 @@ import java.util.List;
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // userDetailsService를 활용하기 위해서 서비스 호출
     private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService customUserDetailsService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService customUserDetailsService) {
         this.jwtUtil = jwtUtil;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Override
@@ -55,15 +59,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String email = claims.getSubject();
-        String role = claims.get("role", String.class);
+        // 위에 있는 토큰 검증 로직은 수정할 필요가 없다고 생각했음
 
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+        String email = claims.getSubject(); // <-JWT payload에서 가져온 email을 통해서
 
-        Authentication authentication =
-                new UsernamePasswordAuthenticationToken(email, null, authorities);
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email); // DB내에 저장되어 있는 유저 객체를 그대로 들고와서
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (userDetails != null) { // 가져왔는지 아닌지 검증하고
+
+            Authentication authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            // 조회한 유저 객체 데이터를 통한 Authentication 구현
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
 
         filterChain.doFilter(request, response);
     }

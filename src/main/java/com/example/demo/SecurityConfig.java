@@ -18,6 +18,7 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -31,8 +32,8 @@ public class SecurityConfig {
                         .requestMatchers("/public", "/join", "/").permitAll()
                         .requestMatchers("/private").hasRole("ADMIN")
                         .anyRequest().authenticated())
-                // 여기!
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil),
+                // 필터의 생성자에 customUserDetailsService를 추가해주었기때문에 반영
+                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil,customUserDetailsService),
                         UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(customAuthenticationEntryPoint)

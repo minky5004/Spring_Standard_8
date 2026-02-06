@@ -15,9 +15,10 @@ public class SimpleController {
         return "this is public API";
     }
 
+    // 발제문서에 있던 내용
     @GetMapping("/private")
-    public String privateApi(Authentication authentication) {
-        String userEmail = (String) authentication.getPrincipal();
+    public String privateApi(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        String userEmail = userDetails.getUsername();
         return "hello userEmail=" + userEmail;
     }
 }
